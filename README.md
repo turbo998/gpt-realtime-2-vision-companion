@@ -6,7 +6,10 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Azure](https://img.shields.io/badge/Azure-OpenAI-0078D4?logo=microsoftazure&logoColor=white)](https://learn.microsoft.com/azure/ai-services/openai/)
-[![Status](https://img.shields.io/badge/status-PoC-orange)]()
+[![Status](https://img.shields.io/badge/status-PoC%20scaffold-orange)](./docs/PROGRESS.md)
+
+> 📊 **当前进度**：3 / 13 todos 完成（仓库 + 骨架 + 后端可运行）。详情见 [`docs/PROGRESS.md`](./docs/PROGRESS.md)。
+> 📐 **完整设计**：见 [`docs/plan.md`](./docs/plan.md)。
 
 ---
 
