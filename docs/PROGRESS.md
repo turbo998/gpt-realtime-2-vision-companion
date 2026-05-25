@@ -2,171 +2,142 @@
 
 > 项目阶段性快照。供"未来的我/你"接着开发用。
 >
-> 完整设计请看 [`./plan.md`](./plan.md)；总体架构 [`./architecture.md`](./architecture.md)。
+> 完整设计请看 [`./plan.md`](./plan.md)；端到端延迟说明 [`./LATENCY.md`](./LATENCY.md)；演示脚本 [`./demo-script.md`](./demo-script.md)。
 
-最后更新：2026-05-25
+最后更新：2026-05-25（v0.2 — 端到端 demo 可跑）
 
 ---
 
-## ✅ 已完成（3 / 13）
+## ✅ 已完成（13 / 13）
 
 ### 1. `create-github-repo`
-- 创建 public repo: <https://github.com/turbo998/gpt-realtime-2-vision-companion>
-- 本地 git init、`.gitignore` (Python+Node+Azure)、`LICENSE` (MIT)、`README.md`
-- 初始 commit `0f3c46a` 已 push
+Public repo: <https://github.com/turbo998/gpt-realtime-2-vision-companion>，MIT License。
 
 ### 2. `scaffold`
-- 完整目录树：`backend/` `frontend/` `infra/` `docs/` `.vscode/` `azure.yaml` `.editorconfig`
-- 后端：FastAPI 应用（`app/main.py`）、pydantic-settings 配置（`app/config.py`）、`Dockerfile`、`.env.example`、`pyproject.toml`
-- 后端占位模块：`ws_session.py` / `realtime_client.py` / `tools.py` / `prompts.py` / `telemetry.py`
-- 前端 PWA：`index.html`、`manifest.webmanifest`、`service-worker.js`、`styles/main.css`、模块占位（`app.js` / `audio.js` / `video.js` / `ws.js` / `a11y.js` / `wake-word.js`）
-- 基建：`infra/main.bicep`（入口）+ 4 个模块占位 + `main.parameters.json` + `azure.yaml`（azd）
-- 文档：`architecture.md` / `demo-script.md` / `accessibility.md` / `plan.md`
+完整目录树：`backend/` `frontend/` `infra/` `docs/` + `azure.yaml`。
 
 ### 3. `backend-skeleton`
-- FastAPI 启动正常（`uvicorn app.main:app` → `/health` 返回 `{"status":"ok","version":"0.1.0"}`）
-- WebSocket `/ws/session` echo 通了（含 `hello` 握手 + `echo` 消息）
-- pytest 2 个用例（`test_health_ok` + `test_ws_session_handshake`）100% 通过
-- pydantic-settings 读 `.env` 验证 OK
+FastAPI + pydantic-settings + Dockerfile + pytest 全跑通。
 
-#### 验证步骤
+### 4. `realtime-client` ✅
+- `backend/app/realtime_client.py`：完整 Azure OpenAI Realtime WSS 客户端
+- 双鉴权：`DefaultAzureCredential` Bearer token → `api-key` fallback
+- `session.update` 注入 `instructions` / `tools` / `voice` / `input_audio_format=pcm16`
+- 事件迭代器：`async for event in client.events()`
+- 方法：`send_audio_chunk` / `send_text` / `send_image_jpeg` / `cancel_response` / `commit_user`
+
+### 5. `ws-session` ✅
+- `backend/app/ws_session.py`：前后端协议桥接 + 状态机
+- 协议文档化（文件头注释）：JSON 文本帧 + 原始二进制（PCM16 / JPEG）
+- `frame_meta` 文本帧前置 → 二进制 JPEG 帧
+- 麦克风 PCM16 24kHz mono → AOAI `input_audio_buffer.append`
+- AOAI `response.output_audio.delta` → 前端原始二进制播放
+- `interrupt` → `response.cancel` + 前端立即 flush 播放队列
+- 转写流（user + assistant，带 final 标志）
+- Tool call → 翻译为 `mode` / `request_frame` / `safety` 控制帧
+- 首句音频延迟埋点（`vc.first_audio_ms`）
+
+### 6. `prompts-and-tools` ✅
+- `prompts.py`：`SYSTEM_PROMPT_ZH` — 角色"视觉伙伴"、安全/简短/口语化规则
+- `tools.py`：10+ 场景对应的 function schema
+  - `set_mode(describe|read_text|find_object|navigation|currency|menu|medicine|transit|sign|shipping)`
+  - `request_high_res_frame(purpose)`
+  - `frame_quality_check(is_usable, hint)`
+  - `safety_alert(category, message)` — 红绿灯/车辆/障碍物
+  - `privacy_redact(level)` — 隐私信息（快递面单单号等）
+
+### 7. `frontend-audio` ✅
+- `audio.js` + `worklet/capture-processor.js`：AudioWorklet 双向 PCM16 24kHz
+- 采集端 40ms flush，原生重采样从 48kHz 降到 24kHz
+- 播放端 `AudioBufferSourceNode` 排队，零拷贝二进制接收
+- VU 表 → 触发打断检测
+- `flushPlayback()` 立即清空待播队列
+
+### 8. `frontend-video` ✅
+- `video.js`：摄像头流 + `OffscreenCanvas` 抽帧
+- `grabFrame('low')` → 640×480 JPEG q=0.7
+- `grabFrame('high')` → 1280×960 JPEG q=0.85
+- 后置摄像头优先（`facingMode: environment`）
+
+### 9. `frontend-app` ✅
+- `ws.js`：JSON + 二进制双轨 WebSocket 封装
+- `app.js`：完整编排
+  - 10 个一键场景芯片
+  - 状态机：idle / listening / thinking / speaking / error
+  - 后台每 1.5s 自动低清取景（预热）
+  - 打断检测（VU > 0.04 + isPlaying）
+  - 延迟徽章实时更新（绿/黄/红三档）
+  - Safety alert 横幅 + 振动
+  - Triple-click 大按钮 = 结束会话（无障碍）
+
+### 10. `frontend-html-css` ✅
+- `index.html`：无障碍优先，跳过链接、ARIA live、72px 主按钮
+- `main.css`：暗色护眼、状态色映射主按钮、自适应布局、`prefers-reduced-motion` 支持
+- `manifest.webmanifest` + 简版 service worker（PWA 可安装）
+
+### 11. `infra-bicep` ✅
+- `infra/main.bicep`：完整模块编排
+- `modules/openai.bicep`：Cognitive Services + gpt-realtime-2 GlobalStandard
+- `modules/monitoring.bicep`：Log Analytics + App Insights（workspace-based）
+- `modules/container-app.bicep`：ACR + UAMI + Managed Env + Container App
+  - 角色：`Cognitive Services OpenAI User` + `AcrPull`
+  - 环境变量自动注入：`AZURE_OPENAI_ENDPOINT` / `AZURE_CLIENT_ID` / `APPLICATIONINSIGHTS_CONNECTION_STRING`
+- `modules/static-web-app.bicep`：Free 套餐，可选 GitHub CI
+- Outputs：`BACKEND_URL` / `FRONTEND_URL` / `AZURE_OPENAI_ENDPOINT` / `APPLICATIONINSIGHTS_CONNECTION_STRING`
+
+### 12. `telemetry-appi` ✅
+- `telemetry.py`：可选 Azure Monitor OTel 接入
+- 自定义指标：`vc.first_audio_ms` / `vc.response_total_ms` / `vc.frame_bytes` / `vc.tool_calls`
+- **不发送原始音频/图像字节**（隐私）
+
+### 13. `docs` ✅
+- `LATENCY.md`：延迟预算 + 测量 + KQL
+- `demo-script.md`：10 个可演示场景 + 演示节奏 + Checklist
+- `PROGRESS.md`：本文件
+
+---
+
+## 🚀 一键部署
+
 ```bash
+# 1. 部署 Azure 资源
+azd up
+# → 选择订阅 / region（建议 eastus2 / swedencentral / japaneast 之一，看 gpt-realtime-2 哪里上）
+
+# 2. 构建并推送后端镜像
+ACR=$(azd env get-value ACR_LOGIN_SERVER)
+docker build -t $ACR/vision-companion-backend:v1 backend/
+az acr login --name ${ACR%%.*}
+docker push $ACR/vision-companion-backend:v1
+# 重新部署，让 Container App 拉新镜像
+azd deploy
+
+# 3. 部署前端到 SWA
+swa deploy frontend --env production
+```
+
+## 🧪 本地开发
+
+```bash
+# 后端
 cd backend
-pip install -e ".[dev]" --only-binary=:all:    # win-arm64 必加 --only-binary
-pytest -q                                       # 2 passed
-uvicorn app.main:app --reload --port 8000      # 然后访问 /health
+pip install -e ".[dev]"
+cp .env.example .env  # 填 AZURE_OPENAI_ENDPOINT 等
+uvicorn app.main:app --reload --port 8000
+
+# 前端（另开终端）
+cd frontend
+python -m http.server 5173
+# 浏览器开 http://localhost:5173?backend=ws://localhost:8000
 ```
 
----
+无 Azure 配置时后端进入 **stub 模式**，前端依然能跑（看到"Stub 模式"toast），适合做 UI 联调。
 
-## ⏳ 待办（10 / 13） — 推荐顺序
+## 📍 下一步建议（v0.3+）
 
-| # | Todo ID | 简述 | 依赖 |
-| --- | --- | --- | --- |
-| 4 | `realtime-integration` | 接通 Azure OpenAI Realtime WSS（含 DefaultAzureCredential、session.update、双向事件） | backend-skeleton ✅ |
-| 5 | `frontend-audio` | AudioWorklet 录 PCM16/24k + 流式播放 + 打断（response.cancel） | backend-skeleton ✅ |
-| 6 | `vision-injection` | 前端 1FPS 帧缓存 + 用户开口时上传 low-res；后端注入 `conversation.item.create` | 4 + 5 |
-| 7 | `accessibility` | 状态音效、唤醒词、ARIA 完善、双/三指手势、TalkBack/VoiceOver 实测 | 5 |
-| 8 | `prompt-and-tools` | 系统提示词调优 + tools handler 接线（set_mode / request_high_res_frame / frame_quality_check） | 6 |
-| 9 | `infra-bicep` | 4 个模块的真实实现 + azd 一键起 | scaffold ✅ |
-| 10 | `observability` | App Insights + OpenTelemetry + 自定义 metric（first_audio_latency_ms 等） | backend-skeleton ✅ |
-| 11 | `deploy-and-verify` | `azd up` → 手机浏览器实测 | 7 + 8 + 9 + 10 |
-| 12 | `demo-script` | 5 个场景台词 + 兜底 + 演示 checklist | 11 |
-| 13 | `ocr-augment` (可选) | Azure AI Vision Read API 复杂 OCR 兜底 | 8 |
-
----
-
-## 🔧 接着开发：实用提示
-
-### 环境准备
-- Python 3.11+（本仓库使用 3.12 验证过）
-- Node 不强制（前端是纯 JS，任意静态服务器即可）
-- Azure CLI + azd（部署阶段才需要）
-
-### Win-ARM64 注意事项
-- `uvicorn[standard]` 的 `httptools` 没有 ARM64 wheel；本仓库已改用纯 `uvicorn`（仍可走 `websockets` 库实现 WS）
-- 安装时加 `--only-binary=:all:` 避免源码编译
-
-### 下一步具体行动建议（`realtime-integration`）
-1. 在 `backend/app/realtime_client.py` 实现：
-   - `connect(deployment, api_version)` → 拼 `wss://{endpoint}/openai/realtime?deployment=...&api-version=...`
-   - 认证：`azure.identity.DefaultAzureCredential().get_token("https://cognitiveservices.azure.com/.default")` → `Authorization: Bearer ...`；API key fallback `api-key` header
-   - `session.update`：`modalities=["text","audio"]`、`voice="alloy"`（或新声音）、`input_audio_format="pcm16"`、`output_audio_format="pcm16"`、`input_audio_transcription={"model":"whisper-1"}`、`turn_detection={"type":"server_vad"}`、`tools` 来自 `app.tools.TOOLS`
-   - 事件分发器（asyncio.Queue 给 ws_session 消费）
-2. 改写 `backend/app/ws_session.py`：建立 `RealtimeClient`，把客户端二进制音频转成 `input_audio_buffer.append`；把模型 `response.audio.delta` 转回客户端
-3. 加测试：mock Realtime 端点验证转发逻辑
-
-### 模型 fallback 策略
-代码里准备这个顺序：
-1. `AZURE_OPENAI_REALTIME_DEPLOYMENT`（默认 `gpt-realtime-2`）
-2. 收到 4xx 时 fallback 到 `AZURE_OPENAI_REALTIME_FALLBACK_DEPLOYMENT`（默认 `gpt-4o-realtime-preview`）
-3. 都不行就走 stub：固定回 "服务暂不可用，请稍后再试"（保证 demo 不会黑屏）
-
-### 区域建议
-gpt-realtime 系列优先：
-- East US 2
-- Sweden Central
-- (查最新文档确认 gpt-realtime-2 的发布区域)
-
----
-
-## 📂 当前仓库结构
-
-```
-gpt-realtime-2-vision-companion/
-├── README.md
-├── LICENSE
-├── .gitignore
-├── .editorconfig
-├── azure.yaml
-├── .vscode/extensions.json
-├── backend/
-│   ├── Dockerfile
-│   ├── pyproject.toml
-│   ├── .env.example
-│   ├── README.md
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── main.py            ✅ 可运行
-│   │   ├── config.py          ✅ 完整
-│   │   ├── ws_session.py      🟡 echo 占位
-│   │   ├── realtime_client.py 🟡 接口骨架
-│   │   ├── tools.py           🟡 schema 就绪，handler 待接
-│   │   ├── prompts.py         ✅ 中英文系统提示词
-│   │   └── telemetry.py       🟡 no-op 占位
-│   └── tests/
-│       └── test_health.py     ✅ 2 passing
-├── frontend/
-│   ├── index.html             ✅ 无障碍 shell
-│   ├── manifest.webmanifest   ✅
-│   ├── service-worker.js      ✅
-│   ├── README.md
-│   ├── styles/main.css        ✅ 大按钮 + 状态色 + 脉冲
-│   ├── public/                (待放 icon-192/512)
-│   └── src/
-│       ├── app.js             🟡 启动 + 状态切换占位
-│       ├── audio.js           🟡 待实现
-│       ├── video.js           🟡 待实现
-│       ├── ws.js              🟡 待实现
-│       ├── a11y.js            ✅ 状态机 + 振动
-│       └── wake-word.js       🟡 待实现
-├── infra/
-│   ├── main.bicep             🟡 入口 + TODO 标记
-│   ├── main.parameters.json   ✅
-│   └── modules/
-│       ├── openai.bicep            🟡 待实现
-│       ├── container-app.bicep     🟡 待实现
-│       ├── static-web-app.bicep    🟡 待实现
-│       └── monitoring.bicep        🟡 待实现
-└── docs/
-    ├── plan.md                ✅ 完整设计（13 todo + 风险 + 验收）
-    ├── architecture.md        ✅
-    ├── demo-script.md         ✅
-    ├── accessibility.md       ✅
-    └── PROGRESS.md            ← 本文
-```
-
-图例：✅ 完整 · 🟡 占位/骨架（含 TODO 注释指向哪个 todo 实现）
-
----
-
-## 🧭 已确认的关键决策
-
-| 项 | 决策 |
-| --- | --- |
-| 前端载体 | Web PWA |
-| 交互模式 | 语音 Q&A + 模型主动安全提醒 |
-| 模型链路 | gpt-realtime-2 端到端（语音+vision），fallback gpt-4o-realtime-preview |
-| 部署 | Azure Container Apps（后端）+ Static Web Apps（前端） |
-| 后端语言 | Python 3.11 + FastAPI + websockets |
-| 认证 | User-Assigned Managed Identity（Container App → AOAI） |
-| 隐私 | 默认不持久化音视频 |
-
----
-
-## 📌 Commits
-
-| Hash | 内容 |
-| --- | --- |
-| `0f3c46a` | chore: initial scaffold with README, LICENSE, gitignore |
-| `5bb5021` | feat: scaffold backend (FastAPI+WS), frontend (PWA), infra (Bicep) and docs |
+- [ ] Realtime VAD：服务端 `turn_detection: server_vad` 改 `none` 由前端控制以降延迟
+- [ ] Wake word：浏览器端 picovoice/porcupine 整合（`wake-word.js` 占位已存在）
+- [ ] iOS Safari AudioContext unlock 测试
+- [ ] 中国大陆区接入：等 gpt-realtime-2 上中国区 / Sovereign Cloud
+- [ ] E2E 自动化：Playwright 模拟麦克风 + 摄像头流
+- [ ] 主动场景：基于持续帧流的"前方台阶""红绿灯变绿"主动提醒（需要 background analysis）

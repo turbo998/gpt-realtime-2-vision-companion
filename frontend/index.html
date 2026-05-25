@@ -6,31 +6,75 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
     />
-    <meta name="theme-color" content="#000000" />
-    <meta name="description" content="基于 Azure OpenAI gpt-realtime-2 的视障人群实时语音视觉助理" />
+    <meta name="theme-color" content="#0b1020" />
     <title>视觉伙伴 · Vision Companion</title>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="icon" href="./public/icon-192.png" type="image/png" />
-    <link rel="apple-touch-icon" href="./public/icon-192.png" />
     <link rel="stylesheet" href="./styles/main.css" />
   </head>
   <body>
-    <main id="app" aria-live="polite">
-      <button
-        id="primary-action"
-        class="primary-action"
-        type="button"
-        aria-label="按住说话，松开提问"
-      >
-        <span class="primary-action__label" data-state="idle">点击或长按说话</span>
-      </button>
+    <a class="skip-link" href="#primary-action">跳到主要按钮</a>
 
-      <section id="status" class="status" role="status" aria-live="assertive">
-        准备就绪
+    <header class="topbar" role="banner">
+      <div class="brand">
+        <span class="brand__dot" aria-hidden="true"></span>
+        <span class="brand__name">视觉伙伴</span>
+        <span class="brand__sub">Realtime · Vision</span>
+      </div>
+      <div class="badges">
+        <span id="latency" class="badge badge--latency" aria-live="polite">
+          首句 — · 总 —
+        </span>
+        <span id="mode" class="badge badge--mode" aria-live="polite">
+          模式: default
+        </span>
+      </div>
+    </header>
+
+    <main class="stage">
+      <section class="viewport" aria-label="实时画面">
+        <video
+          id="preview"
+          class="viewport__video"
+          playsinline
+          muted
+          autoplay
+        ></video>
+        <div id="safety" class="safety" role="alert" hidden></div>
       </section>
 
-      <video id="preview" class="preview" autoplay muted playsinline aria-hidden="true"></video>
+      <section class="panel" aria-label="对话与控制">
+        <div
+          id="status"
+          class="status"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          准备就绪
+        </div>
+
+        <button
+          id="primary-action"
+          class="primary-action"
+          data-state="idle"
+          aria-label="开始对话"
+        >
+          <span class="primary-action__icon" aria-hidden="true"></span>
+          <span class="primary-action__label" data-state="idle">点这里说话</span>
+        </button>
+
+        <div
+          id="scenarios"
+          class="scenarios"
+          aria-label="一键场景"
+          role="toolbar"
+        ></div>
+
+        <ol id="captions" class="captions" aria-live="polite" aria-label="对话字幕"></ol>
+      </section>
     </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
     <script type="module" src="./src/app.js"></script>
   </body>

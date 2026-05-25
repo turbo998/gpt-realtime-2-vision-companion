@@ -19,6 +19,12 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     logging.basicConfig(level=settings.log_level.upper())
     logger.info("Starting app env=%s version=%s", settings.app_env, __version__)
+    try:
+        from app.telemetry import init_telemetry
+
+        init_telemetry(settings.applicationinsights_connection_string or None)
+    except Exception as exc:  # pragma: no cover
+        logger.warning("telemetry init failed: %s", exc)
     yield
     logger.info("Shutting down")
 
