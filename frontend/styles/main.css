@@ -1,0 +1,107 @@
+:root {
+  --bg: #000;
+  --fg: #fff;
+  --accent: #ffb000;
+  --danger: #ff3b30;
+  --ok: #34c759;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei",
+    Roboto, sans-serif;
+  font-size: 18px;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+  height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.primary-action {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--bg);
+  background: var(--accent);
+  border: none;
+  border-radius: 0;
+  padding: 2rem;
+  cursor: pointer;
+  touch-action: manipulation;
+  outline: none;
+}
+.primary-action:focus-visible {
+  box-shadow: inset 0 0 0 6px var(--fg);
+}
+.primary-action[data-state="listening"] {
+  background: var(--ok);
+}
+.primary-action[data-state="thinking"] {
+  background: #ffd60a;
+}
+.primary-action[data-state="speaking"] {
+  background: #0a84ff;
+  color: var(--fg);
+}
+.primary-action[data-state="error"] {
+  background: var(--danger);
+  color: var(--fg);
+}
+
+.status {
+  flex: 0 0 auto;
+  padding: 1rem;
+  font-size: 1.1rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.preview {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  width: 96px;
+  height: 128px;
+  object-fit: cover;
+  border-radius: 12px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .primary-action[data-state="listening"] {
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 0 rgba(255, 255, 255, 0.4);
+  }
+  50% {
+    box-shadow: inset 0 0 0 12px rgba(255, 255, 255, 0.4);
+  }
+}

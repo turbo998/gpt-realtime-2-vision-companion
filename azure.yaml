@@ -1,0 +1,33 @@
+# Azure Developer CLI configuration
+# https://aka.ms/azure-dev/schema
+name: gpt-realtime-2-vision-companion
+metadata:
+  template: gpt-realtime-2-vision-companion@0.1.0
+
+services:
+  backend:
+    project: ./backend
+    language: python
+    host: containerapp
+    docker:
+      path: Dockerfile
+      context: .
+
+  frontend:
+    project: ./frontend
+    language: js
+    host: staticwebapp
+    dist: .
+
+hooks:
+  postprovision:
+    windows:
+      shell: pwsh
+      run: Write-Host "Provisioning complete. Run 'azd deploy' to push code."
+      continueOnError: true
+      interactive: true
+    posix:
+      shell: sh
+      run: echo "Provisioning complete. Run 'azd deploy' to push code."
+      continueOnError: true
+      interactive: true

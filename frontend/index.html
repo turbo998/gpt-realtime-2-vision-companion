@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+    />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="基于 Azure OpenAI gpt-realtime-2 的视障人群实时语音视觉助理" />
+    <title>视觉伙伴 · Vision Companion</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./public/icon-192.png" type="image/png" />
+    <link rel="apple-touch-icon" href="./public/icon-192.png" />
+    <link rel="stylesheet" href="./styles/main.css" />
+  </head>
+  <body>
+    <main id="app" aria-live="polite">
+      <button
+        id="primary-action"
+        class="primary-action"
+        type="button"
+        aria-label="按住说话，松开提问"
+      >
+        <span class="primary-action__label" data-state="idle">点击或长按说话</span>
+      </button>
+
+      <section id="status" class="status" role="status" aria-live="assertive">
+        准备就绪
+      </section>
+
+      <video id="preview" class="preview" autoplay muted playsinline aria-hidden="true"></video>
+    </main>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
