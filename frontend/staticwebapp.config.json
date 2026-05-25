@@ -1,0 +1,15 @@
+{
+  "trailingSlash": "auto",
+  "mimeTypes": {
+    ".webmanifest": "application/manifest+json",
+    ".js": "text/javascript"
+  },
+  "globalHeaders": {
+    "Permissions-Policy": "camera=(self), microphone=(self), display-capture=(self)",
+    "Referrer-Policy": "strict-origin-when-cross-origin"
+  },
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/styles/*", "/src/*", "/*.{js,css,webmanifest,png,svg,ico,json}"]
+  }
+}

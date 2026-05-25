@@ -5,10 +5,13 @@ targetScope = 'resourceGroup'
 @description('Environment name used to derive resource names.')
 param environmentName string
 
-@description('Azure region for compute / monitoring / OpenAI.')
+@description('Azure region for compute (Container App) + monitoring. Default: southeastasia (Singapore).')
 param location string = resourceGroup().location
 
-@description('Region for Static Web App (limited regions).')
+@description('Region for Azure OpenAI. gpt-realtime-2 currently only in eastus2 / swedencentral / japaneast. Default: japaneast.')
+param openAiLocation string = 'japaneast'
+
+@description('Region for Static Web App (limited regions). eastasia is the closest to SEA.')
 param swaLocation string = 'eastasia'
 
 @description('Optional GitHub repo URL for SWA CI (e.g. https://github.com/turbo998/gpt-realtime-2-vision-companion).')
@@ -17,8 +20,11 @@ param repositoryUrl string = ''
 @description('Realtime model name. Override to "gpt-4o-realtime-preview" if "gpt-realtime-2" is not yet in the region.')
 param realtimeModelName string = 'gpt-realtime-2'
 
-@description('Backend container image (push to ACR first, then pass <acr>.azurecr.io/vision-companion-backend:tag).')
+@description('Backend container image. Leave empty for first provision — placeholder will be used, then `azd deploy` builds & pushes the real image.')
 param backendImage string = ''
+
+// On first provision the ACR is empty, so use a tiny placeholder. azd deploy will replace it.
+var effectiveBackendImage = empty(backendImage) ? 'mcr.microsoft.com/k8se/quickstart:latest' : backendImage
 
 @description('CORS allowed origins (comma separated).')
 param allowedOrigins string = '*'
@@ -35,7 +41,7 @@ module openai 'modules/openai.bicep' = {
   name: 'openai'
   params: {
     name: '${prefix}-aoai-${nameSuffix}'
-    location: location
+    location: openAiLocation
     tags: tags
     realtimeModelName: realtimeModelName
     realtimeDeploymentName: 'gpt-realtime-2'
@@ -66,7 +72,7 @@ module containerApp 'modules/container-app.bicep' = {
     azureOpenAiEndpoint: openai.outputs.endpoint
     realtimeDeploymentName: openai.outputs.deploymentName
     allowedOrigins: allowedOrigins
-    image: backendImage
+    image: effectiveBackendImage
     logAnalyticsId: monitoring.outputs.logAnalyticsId
   }
 }

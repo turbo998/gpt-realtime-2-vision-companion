@@ -2,7 +2,7 @@
 # https://aka.ms/azure-dev/schema
 name: gpt-realtime-2-vision-companion
 metadata:
-  template: gpt-realtime-2-vision-companion@0.1.0
+  template: gpt-realtime-2-vision-companion@0.2.0
 
 services:
   backend:
@@ -21,13 +21,26 @@ services:
 
 hooks:
   postprovision:
-    windows:
-      shell: pwsh
-      run: Write-Host "Provisioning complete. Run 'azd deploy' to push code."
-      continueOnError: true
-      interactive: true
     posix:
       shell: sh
-      run: echo "Provisioning complete. Run 'azd deploy' to push code."
+      run: ./scripts/inject-config.sh
+      continueOnError: false
+      interactive: true
+    windows:
+      shell: pwsh
+      run: bash ./scripts/inject-config.sh
+      continueOnError: false
+      interactive: true
+
+  postdeploy:
+    posix:
+      shell: sh
+      run: |
+        echo ""
+        echo "🎉 Deploy complete!"
+        echo "Frontend: $(azd env get-value FRONTEND_URL 2>/dev/null || echo '(see SWA portal)')"
+        echo "Backend:  $(azd env get-value BACKEND_URL 2>/dev/null || echo '(see Container App portal)')"
+        echo ""
+        echo "Open the frontend URL and follow docs/demo-script.md."
       continueOnError: true
       interactive: true
