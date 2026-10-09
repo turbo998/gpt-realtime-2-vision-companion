@@ -12,14 +12,14 @@ End-to-end deploy on Azure with **minimum cost** (Container Apps consumption sca
 明天还需要做的：
 
 - [ ] **docker** 装好（azd 用它构建后端镜像）：`sudo apt-get update && sudo apt-get install -y docker.io && sudo usermod -aG docker azureuser` → 重新登录
-- [ ] 登录 qichen2@microsoft.com（详见步骤 1）
+- [ ] 登录 maintainer@example.com（详见步骤 1）
 
 ## 1. 登录
 
 ```bash
 # Azure CLI（用于 bicep 部署的底层调用）
 az login --use-device-code
-# 浏览器打开返回的 URL，输入 device code，账号选 qichen2@microsoft.com
+# 浏览器打开返回的 URL，输入 device code，账号选 maintainer@example.com
 az account set --subscription "<目标订阅名或 ID>"
 az account show --query "{user:user.name,sub:name,id:id}" -o table
 
