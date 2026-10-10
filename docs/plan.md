@@ -1,7 +1,7 @@
 # PoC: 视障人群实时音视频通话助手 (类豆包视频通话)
 
 > **GitHub Repo**: `turbo998/gpt-realtime-2-vision-companion` (public)
-> **本地路径**: `C:\Users\YOUR_USER\gpt-realtime-2-vision-companion`
+> **本地路径**: `C:\Users\user\gpt-realtime-2-vision-companion`
 
 ## 1. 问题与目标
 为视障用户提供一个"实时视频通话式"AI 助理：
