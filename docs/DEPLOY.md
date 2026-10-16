@@ -49,7 +49,7 @@ azd up
 ```
 
 期间会提示：
-- 选订阅 → qichen2 那个
+- 选订阅 → 选择你的目标 Azure 订阅
 - 选 region（已通过 env 预设，回车确认即可）
 - 创建/选已有 RG → 建新的 `rg-vc-prod`
 
